@@ -1,0 +1,40 @@
+# Rust
+target/
+**/*.rs.bk
+
+# Tauri build artifacts (Rust output lives under src-tauri/target/)
+src-tauri/target/
+
+# Node / Vite
+node_modules/
+dist/
+.npm/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build output staged for GitHub Releases (large files; upload via Releases, don't commit)
+release/
+
+# Whisper model files (too large for git — keep models/ tracked but ignore the actual .bin files)
+models/*.bin
+models/*.zip
+models/*.tar.gz
+!models/README.md
+
+# IDE / OS junk
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+
+# Env / secrets (not used currently, but standard hygiene)
+.env
+.env.local
+.env.*.local
+
+# Private strategy doc — references the Parallel project, not for public release
+SHIP_BRIEF.md

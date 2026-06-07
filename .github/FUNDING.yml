@@ -1,0 +1,12 @@
+# Sponsor button on the Steno repo page (top right, next to Watch/Fork).
+# Activate by uncommenting the line(s) below and filling in your username/URL.
+#
+# Recommended: Ko-fi (fastest setup — sign up at ko-fi.com, link PayPal, you're done).
+# Tell Claude your Ko-fi username and the line below gets filled in.
+#
+# Docs: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/displaying-a-sponsor-button-in-your-repository
+
+# ko_fi: your-kofi-username
+# github: your-github-username           # (later — needs Sponsors program approval)
+# buy_me_a_coffee: your-bmc-username     # (alternative to Ko-fi, same vibe)
+# custom: ["https://your-support-url"]

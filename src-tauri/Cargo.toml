@@ -1,0 +1,38 @@
+[package]
+name = "steno"
+version = "0.1.0"
+edition = "2021"
+
+# See: https://tauri.app/v2/guides/
+[lib]
+name = "steno_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-global-shortcut = "2"
+tauri-plugin-shell = "2"
+
+# Audio capture
+cpal = "0.15"
+
+# Whisper transcription (compiles whisper.cpp — requires CMake + MSVC)
+# For CUDA GPU acceleration, change to:
+#   whisper-rs = { version = "0.11", features = ["cuda"] }
+whisper-rs = "0.11"
+
+# Simulate keyboard typing
+enigo = "0.2"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
