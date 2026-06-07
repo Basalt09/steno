@@ -154,9 +154,9 @@ of heat, or switch to a smaller model.
 
 ## Support the work
 
-Steno is free and will stay free. If it saves you typing time, you can support continued
-development via the sponsor link at the top of this repo (once activated — see
-`.github/FUNDING.yml`).
+Steno is free and will stay free. If it saves you typing time, you can buy me a coffee:
+[ko-fi.com/basalt09](https://ko-fi.com/basalt09) — or use the **Sponsor** button at the top
+of this repo.
 
 ## License
 
