@@ -6,7 +6,7 @@
 #
 # Docs: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/displaying-a-sponsor-button-in-your-repository
 
-# ko_fi: your-kofi-username
-# github: your-github-username           # (later — needs Sponsors program approval)
-# buy_me_a_coffee: your-bmc-username     # (alternative to Ko-fi, same vibe)
+ko_fi: basalt09
+# github: basalt09                       # (later — needs Sponsors program approval)
+# buy_me_a_coffee:                       # (alternative to Ko-fi)
 # custom: ["https://your-support-url"]
