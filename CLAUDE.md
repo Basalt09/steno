@@ -33,7 +33,8 @@ Release      → stop capture → resample to 16 kHz → whisper-rs → String
 | `src-tauri/tauri.conf.json` | Window, tray, bundle, icon, resource config |
 | `src-tauri/capabilities/default.json` | Permission grants (global-shortcut, shell) |
 | `src/App.tsx` | Status UI + recent transcript list with per-entry copy button (`navigator.clipboard`) and selectable text |
-| `models/ggml-*.en.bin` | Whisper model (not in repo — download separately) |
+| `models/ggml-*.bin` | Whisper model — current default `ggml-small.en-q5_1.bin` (~182 MB, quantized for thermals). Not committed; `.gitignore` excludes `.bin` files. Download via curl from HuggingFace at build time. |
+| `LICENSE` | MIT, © 2026 Basalt09 |
 | `SECURITY.md` | Public trust doc — permissions, SmartScreen workaround, verify-by-build, no-network claim |
 | `.github/FUNDING.yml` | Sponsor button config (Ko-fi recommended; lines commented until activated) |
 | `release/` | Build-output staging for GitHub Releases (portable zip + installers + `SHA256SUMS`). Regenerate via the staging block at the bottom of "Build & run". Not committed. |
@@ -63,12 +64,22 @@ npm run tauri build    # standalone exe + MSI/NSIS installers
 - **Model is cached in `AppState`** (`whisper: Arc<Mutex<Option<Arc<WhisperContext>>>>`),
   loaded once on first utterance and reused. Do NOT go back to loading it per-call —
   re-reading the multi-hundred-MB model each time was the dominant latency.
-- **Threads:** `transcribe.rs::transcription_threads()` is hard-capped at 4 (and ~quarter of
-  logical cores). Whisper runs every active core flat-out with AVX, so active-core count drives
-  the thermal spike — on this 24-thread machine, 12 threads hit 100 °C (the throttle point), so
-  the cap deliberately stays far below that. Raise the cap for speed at the cost of heat.
-- Bigger wins if ever needed: smaller model (`ggml-base.en` ≈ 2-3x faster), or the `cuda`
-  feature on `whisper-rs` for GPU (needs the CUDA toolkit + NVIDIA GPU).
+- **Threads:** `transcribe.rs::transcription_threads()` is hard-capped at **2** (via
+  `(n.get() / 4).clamp(2, 2)`). Whisper runs every active core flat-out with AVX, so the
+  number of active cores is what drives the thermal spike. Measured on the 24-thread reference
+  machine, one short sentence of speech:
+  - 12 threads (old default): **100 °C** (throttle limit — DOA)
+  - 4 threads: **87 °C** (better but still hot)
+  - 2 threads + q5_1 small model: **75 °C** (the shipped config — comfortably off throttle)
+
+  Raise the cap if you want speed at the cost of heat. Combine with a smaller model to bring
+  burst duration down at the same peak.
+- **Model size matters more than thread count for total heat.** The shipped `ggml-small.en-q5_1`
+  is already quantized small.en — light on CPU + thermals while keeping accuracy close to fp16
+  small. If users complain about latency, go to `ggml-base.en-q5_1` (~57 MB, ~3× shorter burst,
+  modest accuracy hit). GPU offload (`whisper-rs` `cuda` or `metal` features) is the only path
+  that meaningfully cuts thermals further without sacrificing accuracy — but each needs the
+  matching toolchain (CUDA, or a Mac).
 
 ## Environment gotchas (this machine, learned the hard way)
 
@@ -89,10 +100,11 @@ These are the non-obvious prerequisites that block a clean build:
 4. **Icons must exist before building.** `tauri.conf.json` references `icons/*` which
    `generate_context!()` embeds at compile time — a missing icon fails the build *after* the
    long whisper compile. Generate them with `npm run tauri icon <1024px.png>`.
-5. **Model file is runtime-only**, not needed to compile. Put `ggml-small.en.bin` in `models/`
-   (project root). `transcribe::resolve_model_path()` finds it in dev or in a build: it checks
-   `models/` next to the exe, then walks up parent dirs (covers `target/debug` → repo root), then
-   the CWD. `tauri build` copies `models/` next to the release exe automatically.
+5. **Model file is runtime-only**, not needed to compile. Put the file named by `MODEL_FILENAME`
+   (current default `ggml-small.en-q5_1.bin`) in `models/` (project root).
+   `transcribe::resolve_model_path()` finds it in dev or in a build: it checks `models/` next to
+   the exe, then walks up parent dirs (covers `target/debug` → repo root), then the CWD.
+   `tauri build` copies `models/` next to the release exe automatically.
 6. **`tray-icon` Cargo feature is required.** `tauri.conf.json` defines `app.trayIcon`, so
    `generate_context!()` emits a `set_tray_icon` call gated behind `tauri`'s `tray-icon` feature.
    Cargo.toml must have `tauri = { ..., features = ["tray-icon"] }` or the build fails with
@@ -100,6 +112,70 @@ These are the non-obvious prerequisites that block a clean build:
 7. **`bundle.resources` glob must match ≥1 file.** It's `"../models/*"` (relative to `src-tauri/`,
    = project-root `models/`). Tauri fails the build if the glob matches nothing — hence the
    `models/README.md` placeholder so it resolves before the model is downloaded.
+
+## Shipping & distribution
+
+**v0.1.0 is live** at https://github.com/Basalt09/steno (first public release, 2026-06-07).
+Distribution: GitHub Releases, unsigned, with the SmartScreen workaround documented in
+[SECURITY.md](SECURITY.md). Funding: Ko-fi at https://ko-fi.com/basalt09
+(`.github/FUNDING.yml` activates the Sponsor button on the repo).
+
+### Release pipeline
+
+After a clean `npm run tauri build`:
+
+1. Stage the portable bundle (`steno.exe` + `models/` + a tiny `README.txt`) **OUTSIDE
+   `target/`** — see gotcha below — then zip it via Python's `zipfile` module (no `zip` CLI
+   on this machine). Force `steno/` as the in-zip folder prefix.
+2. Copy the zip + both installers (`Steno_*.msi`, `Steno_*-setup.exe`) into `release/` at
+   project root.
+3. Generate `SHA256SUMS` with `sha256sum *.zip *.msi *.exe > SHA256SUMS`.
+4. Drag the four files from `release/` into GitHub's release "Attach binaries" area in the web
+   UI (no `gh` CLI installed here).
+
+### Packaging gotchas (each cost real time on the first ship)
+
+- **Stage the zip OUTSIDE `target/release/`.** Staging at `src-tauri/target/release/steno/`
+  triggers a Windows-filesystem weirdness where `rm -rf` of that folder also nukes the sibling
+  `steno.exe`. Stage in `/tmp/steno-stage/` and inject the `steno/` archive prefix at zip-time:
+  `z.write(full, "steno/" + rel)`.
+- **No `zip` CLI in this git-bash.** Use Python's `zipfile`; `python` is on PATH from the pip
+  install of `cmake` / `libclang`.
+- **Kill any running `steno.exe` before any rebuild** — Windows holds the binary lock and
+  cargo's link step fails with `os error 5: Access is denied` mid-build. See
+  [[kill-running-exe-before-rebuild]] in the memory system. Command:
+  `tasklist //FI "IMAGENAME eq steno.exe" | grep -i steno && taskkill //F //IM steno.exe`.
+- **Background bash wrappers ending in `echo "exit: $?"` mask the real exit code.** The
+  task-notification reports success even if cargo failed. Verify by exe timestamp + grepping
+  the output for `error`, not the wrapper's exit code. Or chain `exit $rc` at the very end.
+
+### Git identity for this repo
+
+Per-repo config so commits show the Basalt09 pseudonym instead of whatever the OS-level
+global git config has:
+
+```bash
+git config user.name "Basalt09"
+git config user.email "63625270+Basalt09@users.noreply.github.com"
+```
+
+Set **per-repo** (not globally). On a fresh clone of this repo on a new machine, re-set the
+per-repo config before any commit, or the first push will use whatever the global git config
+shows.
+
+### v0.2.0 priorities (when there's demand signal)
+
+In the order the verdict signal will probably surface them:
+
+1. **macOS build.** GitHub Actions macOS runner is free; Tauri builds cleanly on Mac and
+   gets Metal GPU acceleration for whisper-rs (huge thermal/speed win on Apple Silicon).
+   Code-signing + notarization needs Apple Developer Program ($99/yr — defer until revenue).
+2. **Multilingual.** Swap `MODEL_FILENAME` to `ggml-small-q5_1.bin` (no `.en` suffix, ~180 MB,
+   99-language model) and set `params.set_language(None)` for auto-detect. UI dropdown if a
+   user wants to pin a language.
+3. **Signed Windows installer.** $19 Microsoft Partner Center registration → Microsoft Store →
+   Microsoft signs the installer → SmartScreen warning disappears. Cheapest path; needs to
+   wait until Gumroad/Ko-fi has covered the $19.
 
 ## Version-pinned API notes (don't "fix" these — they're correct for the locked versions)
 
