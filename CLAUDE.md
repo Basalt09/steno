@@ -124,6 +124,13 @@ Distribution: GitHub Releases, unsigned, with the SmartScreen workaround documen
 [SECURITY.md](SECURITY.md). Funding: Ko-fi at https://ko-fi.com/basalt09
 (`.github/FUNDING.yml` activates the Sponsor button on the repo).
 
+**Binary swap mid-launch (2026-06-08, before any external posting):** the original v0.1.0
+binaries used `small.en-q5_1` + 2 threads. Real-use testing showed long-sentence processing
+took ~6-10s and the peak crept on consecutive utterances. The shipped binaries were replaced
+in-place on the same v0.1.0 tag (no version bump) with `base.en-q5_1` — faster, same peak,
+smaller download. This is safe pre-launch (zero downloads yet); post-launch it would require
+a version bump.
+
 ### Release pipeline
 
 After a clean `npm run tauri build`:

@@ -4,7 +4,7 @@ use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextPar
 /// Change this to swap models without touching anything else.
 /// Options: ggml-tiny.en.bin | ggml-base.en.bin | ggml-small.en.bin | ggml-medium.en.bin
 /// Quantized variants (lighter on CPU + thermals): append `-q5_1` or `-q8_0` to small/base.
-pub const MODEL_FILENAME: &str = "ggml-small.en-q5_1.bin";
+pub const MODEL_FILENAME: &str = "ggml-base.en-q5_1.bin";
 
 /// Find the model file regardless of how the app was launched.
 ///
@@ -73,8 +73,11 @@ pub fn load_model(model_path: &Path) -> Result<WhisperContext, String> {
 
 /// CPU threads to use for transcription. Hard-capped at 2. Whisper runs every active core
 /// flat-out with AVX, so the *number* of active cores is what drives the thermal spike.
-/// History on the 24-thread reference machine: 12 threads → 100 °C (throttle), 4 threads →
-/// 87 °C with the q5_1 small.en model, 2 threads should land another notable step lower.
+/// History on the 24-thread reference machine:
+///   - 12 threads + small.en-q5_1  → 100 °C (throttle)
+///   - 4  threads + small.en-q5_1  → 87  °C
+///   - 2  threads + small.en-q5_1  → 75 °C peak, but ~6-10s processing on longer utterances
+///   - 2  threads + base.en-q5_1   → 75 °C peak, ~2-3s processing  ← shipped
 /// Raise the upper bound of the clamp if you want more speed at the cost of more heat.
 fn transcription_threads() -> i32 {
     std::thread::available_parallelism()
