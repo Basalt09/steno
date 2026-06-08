@@ -8,6 +8,10 @@ focused on. No cloud. No subscription. No telemetry. Your voice never leaves you
 > **English only for now.** A multilingual version (Whisper supports 99 languages) is on the
 > table for a future release if there's demand.
 
+> **Optimized for fast, thermal-friendly transcription.** Common words and conversational
+> phrases land cleanly; less-common words, proper nouns, and technical terms may need
+> manual correction.
+
 ---
 
 ## Why
@@ -24,9 +28,9 @@ Open-source so you can verify all of that — see [SECURITY.md](SECURITY.md) and
 
 | File | Size | What it is |
 |---|---|---|
-| `Steno_0.1.0_x64-setup.exe` | 171 MB | **Installer (recommended).** Standard Windows setup wizard. Adds a Start Menu entry. |
-| `steno-0.1.0-windows-x64.zip` | 177 MB | **Portable.** Unzip anywhere, double-click `steno.exe`. No install, no registry. |
-| `Steno_0.1.0_x64_en-US.msi` | 177 MB | MSI installer (enterprise-style). |
+| `Steno_0.1.0_x64-setup.exe` | 54 MB | **Installer (recommended).** Standard Windows setup wizard. Adds a Start Menu entry. |
+| `steno-0.1.0-windows-x64.zip` | 57 MB | **Portable.** Unzip anywhere, double-click `steno.exe`. No install, no registry. |
+| `Steno_0.1.0_x64_en-US.msi` | 57 MB | MSI installer (enterprise-style). |
 | `SHA256SUMS` | — | Checksums to verify your download. |
 
 → [Latest release](../../releases/latest)
@@ -98,8 +102,8 @@ export LIBCLANG_PATH="$(python -c 'import clang,os;print(os.path.join(os.path.di
 ```bash
 npm install                                    # JS deps
 # place the model file:
-curl -L -o models/ggml-small.en-q5_1.bin \
-  https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.en-q5_1.bin
+curl -L -o models/ggml-base.en-q5_1.bin \
+  https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en-q5_1.bin
 ```
 
 Generate icons if `src-tauri/icons/` is missing:
@@ -121,16 +125,16 @@ Outputs:
 
 ## Model options
 
-The default `ggml-small.en-q5_1.bin` (~182 MB) is a quantized small.en model — good accuracy
-and friendly on CPU/temps. To swap, change `MODEL_FILENAME` in
+The default `ggml-base.en-q5_1.bin` (~57 MB) is a quantized base.en model — chosen for fast
+real-time response and low CPU/thermal load. To swap, change `MODEL_FILENAME` in
 `src-tauri/src/transcribe.rs` and place the new model file in `models/`.
 
 | Model | Size | Speed | Notes |
 |---|---|---|---|
 | `ggml-tiny.en-q5_1.bin` | ~32 MB | fastest | OK for very clear speech only |
-| `ggml-base.en-q5_1.bin` | ~57 MB | very fast | Good balance for low-spec machines |
-| `ggml-small.en-q5_1.bin` | ~182 MB | fast | **Default — best speed/accuracy trade-off** |
-| `ggml-medium.en-q5_1.bin` | ~514 MB | slow | Higher accuracy, longer CPU bursts |
+| `ggml-base.en-q5_1.bin` | ~57 MB | very fast | **Default — fast, thermal-friendly, good for conversational English** |
+| `ggml-small.en-q5_1.bin` | ~182 MB | slower | Better accuracy on uncommon words; longer processing + warmer CPU |
+| `ggml-medium.en-q5_1.bin` | ~514 MB | slow | Highest accuracy; long CPU bursts |
 
 Bigger model = better accuracy on edge words/names, longer transcription bursts, hotter CPU.
 

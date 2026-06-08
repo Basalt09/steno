@@ -33,7 +33,7 @@ Release      → stop capture → resample to 16 kHz → whisper-rs → String
 | `src-tauri/tauri.conf.json` | Window, tray, bundle, icon, resource config |
 | `src-tauri/capabilities/default.json` | Permission grants (global-shortcut, shell) |
 | `src/App.tsx` | Status UI + recent transcript list with per-entry copy button (`navigator.clipboard`) and selectable text |
-| `models/ggml-*.bin` | Whisper model — current default `ggml-small.en-q5_1.bin` (~182 MB, quantized for thermals). Not committed; `.gitignore` excludes `.bin` files. Download via curl from HuggingFace at build time. |
+| `models/ggml-*.bin` | Whisper model — current default `ggml-base.en-q5_1.bin` (~57 MB, quantized for thermals + speed). Not committed; `.gitignore` excludes `.bin` files. Download via curl from HuggingFace at build time. |
 | `LICENSE` | MIT, © 2026 Basalt09 |
 | `SECURITY.md` | Public trust doc — permissions, SmartScreen workaround, verify-by-build, no-network claim |
 | `.github/FUNDING.yml` | Sponsor button config (Ko-fi recommended; lines commented until activated) |
@@ -74,12 +74,16 @@ npm run tauri build    # standalone exe + MSI/NSIS installers
 
   Raise the cap if you want speed at the cost of heat. Combine with a smaller model to bring
   burst duration down at the same peak.
-- **Model size matters more than thread count for total heat.** The shipped `ggml-small.en-q5_1`
-  is already quantized small.en — light on CPU + thermals while keeping accuracy close to fp16
-  small. If users complain about latency, go to `ggml-base.en-q5_1` (~57 MB, ~3× shorter burst,
-  modest accuracy hit). GPU offload (`whisper-rs` `cuda` or `metal` features) is the only path
-  that meaningfully cuts thermals further without sacrificing accuracy — but each needs the
-  matching toolchain (CUDA, or a Mac).
+- **Model size matters more than thread count for total heat AND latency.** The shipped
+  `ggml-base.en-q5_1` (~57 MB) was chosen after real testing of `small.en-q5_1` showed
+  unacceptable processing time (~6-10s per longer utterance at 2 threads) and a creeping peak
+  on consecutive utterances. base.en cuts compute ~3×, dropping a long-sentence test to ~75 °C
+  and feel-fast response. Real accuracy cost: occasional misses on proper nouns / technical
+  terms ("paid dictation" → "Pete detection"). Honest trade-off documented in the README.
+  If accuracy matters more than speed on a given build, switch `MODEL_FILENAME` back to
+  `ggml-small.en-q5_1.bin`. GPU offload (`whisper-rs` `cuda` or `metal` features) is the only
+  path that meaningfully cuts thermals further without sacrificing accuracy — but each needs the
+  matching toolchain (CUDA, or a Mac for Metal).
 
 ## Environment gotchas (this machine, learned the hard way)
 
@@ -101,7 +105,7 @@ These are the non-obvious prerequisites that block a clean build:
    `generate_context!()` embeds at compile time — a missing icon fails the build *after* the
    long whisper compile. Generate them with `npm run tauri icon <1024px.png>`.
 5. **Model file is runtime-only**, not needed to compile. Put the file named by `MODEL_FILENAME`
-   (current default `ggml-small.en-q5_1.bin`) in `models/` (project root).
+   (current default `ggml-base.en-q5_1.bin`) in `models/` (project root).
    `transcribe::resolve_model_path()` finds it in dev or in a build: it checks `models/` next to
    the exe, then walks up parent dirs (covers `target/debug` → repo root), then the CWD.
    `tauri build` copies `models/` next to the release exe automatically.
