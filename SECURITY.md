@@ -8,7 +8,7 @@ audio-surveillance tool uses, so it's worth being explicit about what Steno does
 
 - Captures microphone audio while you're holding `Shift+Space`.
 - Resamples it to 16 kHz in memory and runs it through the local Whisper transcription model
-  (file: `models/ggml-small.en-q5_1.bin`).
+  (file: `models/ggml-base.en-q5_1.bin`).
 - Types the transcribed text into whatever window currently has keyboard focus, by simulating
   keystrokes.
 - Shows recent transcriptions in the Steno window with a copy button.

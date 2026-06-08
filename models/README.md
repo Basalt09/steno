@@ -1,12 +1,12 @@
 # Whisper models
 
 Place the Whisper GGML model here. The app loads the file named by `MODEL_FILENAME`
-in `src-tauri/src/transcribe.rs` (default: `ggml-small.en.bin`).
+in `src-tauri/src/transcribe.rs` (default: `ggml-base.en-q5_1.bin`).
 
 Download from: https://huggingface.co/ggerganov/whisper.cpp/tree/main
 
 ```
-models/ggml-small.en.bin   ← put it here (project root)
+models/ggml-base.en-q5_1.bin   ← put it here (project root)
 ```
 
 ## Runtime path note
